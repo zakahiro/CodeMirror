@@ -141,7 +141,7 @@ export function onKeyUp(e) {
   signalDOMEvent(this, e)
 }
 
-export function onKeyPress(e) {
+function onKeyPressOriginal(e) {
   let cm = this
   if (eventInWidget(cm.display, e) || signalDOMEvent(cm, e) || e.ctrlKey && !e.altKey || mac && e.metaKey) return
   let keyCode = e.keyCode, charCode = e.charCode
@@ -151,5 +151,28 @@ export function onKeyPress(e) {
   // Some browsers fire keypress events for backspace
   if (ch == "\x08") return
   if (handleCharBinding(cm, e, ch)) return
-  cm.display.input.onKeyPress(e)
+  cm.display.input.onKeyPressOriginal(e)
 }
+
+function onKeyPressMobile(e) {
+  let cm = this
+  if(e.which >= 0x10000) {
+    return
+  }
+  if(!cm.display.input.composing) {
+    cm.keyPressTimer = setTimeout( () => {
+      onKeyPressOriginal.call(this, e)
+    }, 30)
+  }
+}
+
+export function onKeyPress(e) {
+  // XXX
+  var userAgent = window.navigator.userAgent.toLowerCase()
+  if (userAgent.indexOf('iphone') != -1 || userAgent.indexOf('ipad') != -1 || userAgent.indexOf('android') != -1) {
+    onKeyPressMobile(e)
+  } else {
+    onKeyPressOriginal(e)
+  }
+}
+

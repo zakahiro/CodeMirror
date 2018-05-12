@@ -1,0 +1,117 @@
+diff --git a/src/edit/key_events.js b/src/edit/key_events.js
+index 2955e4a..ccebe3b 100644
+--- a/src/edit/key_events.js
++++ b/src/edit/key_events.js
+@@ -141,7 +141,7 @@ export function onKeyUp(e) {
+   signalDOMEvent(this, e)
+ }
+ 
+-export function onKeyPress(e) {
++function onKeyPressOriginal(e) {
+   let cm = this
+   if (eventInWidget(cm.display, e) || signalDOMEvent(cm, e) || e.ctrlKey && !e.altKey || mac && e.metaKey) return
+   let keyCode = e.keyCode, charCode = e.charCode
+@@ -151,5 +151,28 @@ export function onKeyPress(e) {
+   // Some browsers fire keypress events for backspace
+   if (ch == "\x08") return
+   if (handleCharBinding(cm, e, ch)) return
+-  cm.display.input.onKeyPress(e)
++  cm.display.input.onKeyPressOriginal(e)
++}
++
++function onKeyPressMobile(e) {
++  let cm = this
++  if(e.which >= 0x10000) {
++    return
++  }
++  if(!cm.display.input.composing) {
++    cm.keyPressTimer = setTimeout( () => {
++      onKeyPressOriginal.call(this, e)
++    }, 30)
++  }
+ }
++
++export function onKeyPress(e) {
++  // XXX
++  var userAgent = window.navigator.userAgent.toLowerCase()
++  if (userAgent.indexOf('iphone') != -1 || userAgent.indexOf('ipad') != -1 || userAgent.indexOf('android') != -1) {
++    onKeyPressMobile(e)
++  } else {
++    onKeyPressOriginal(e)
++  }
++}
++
+diff --git a/src/input/ContentEditableInput.js b/src/input/ContentEditableInput.js
+index d103d2d..222fb25 100644
+--- a/src/input/ContentEditableInput.js
++++ b/src/input/ContentEditableInput.js
+@@ -49,6 +49,32 @@ export default class ContentEditableInput {
+         this.composing.done = true
+       }
+     })
++    // XXX
++    var userAgent = window.navigator.userAgent.toLowerCase()
++    if (userAgent.indexOf('iphone') != -1 || userAgent.indexOf('ipad') != -1 || userAgent.indexOf('android') != -1) {
++      on(div, "compositionstart", e => {
++        if(cm.keyPressTimer) {
++          clearTimeout(cm.keyPressTimer)
++        }
++      }, false)
++      on(window, "keydown", e => {
++        if(e.target == div && cm.display.input.composing) {
++          e.stopPropagation()
++        }
++      }, true)
++      on(div, "blur", e => {
++        if(e.relatedTarget) {
++          return
++        }
++        e.stopPropagation()
++        if (cm.display.input.composing) {
++          div.focus()
++          setTimeout(function(){
++            div.blur()
++          }, 1)
++        }
++      }, false)
++    }
+ 
+     on(div, "touchstart", () => input.forceCompositionEnd())
+ 
+diff --git a/src/input/TextareaInput.js b/src/input/TextareaInput.js
+index 68a1dde..6168c2b 100644
+--- a/src/input/TextareaInput.js
++++ b/src/input/TextareaInput.js
+@@ -112,6 +112,32 @@ export default class TextareaInput {
+         input.composing = null
+       }
+     })
++    // XXX
++    var userAgent = window.navigator.userAgent.toLowerCase()
++    if (userAgent.indexOf('iphone') != -1 || userAgent.indexOf('ipad') != -1 || userAgent.indexOf('android') != -1) {
++      on(te, "compositionstart", e => {
++        if(cm.keyPressTimer) {
++          clearTimeout(cm.keyPressTimer)
++        }
++      }, false)
++      on(window, "keydown", e => {
++        if(e.target == te && cm.display.input.composing) {
++          e.stopPropagation()
++        }
++      }, true)
++      on(te, "blur", e => {
++        if(e.relatedTarget) {
++          return
++        }
++        e.stopPropagation()
++        if (cm.display.input.composing) {
++          te.focus()
++          setTimeout(function(){
++            te.blur()
++          }, 1)
++        }
++      }, false)
++    }
+   }
+ 
+   prepareSelection() {

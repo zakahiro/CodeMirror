@@ -49,6 +49,32 @@ export default class ContentEditableInput {
         this.composing.done = true
       }
     })
+    // XXX
+    var userAgent = window.navigator.userAgent.toLowerCase()
+    if (userAgent.indexOf('iphone') != -1 || userAgent.indexOf('ipad') != -1 || userAgent.indexOf('android') != -1) {
+      on(div, "compositionstart", e => {
+        if(cm.keyPressTimer) {
+          clearTimeout(cm.keyPressTimer)
+        }
+      }, false)
+      on(window, "keydown", e => {
+        if(e.target == div && cm.display.input.composing) {
+          e.stopPropagation()
+        }
+      }, true)
+      on(div, "blur", e => {
+        if(e.relatedTarget) {
+          return
+        }
+        e.stopPropagation()
+        if (cm.display.input.composing) {
+          div.focus()
+          setTimeout(function(){
+            div.blur()
+          }, 1)
+        }
+      }, false)
+    }
 
     on(div, "touchstart", () => input.forceCompositionEnd())
 

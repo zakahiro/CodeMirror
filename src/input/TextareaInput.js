@@ -112,6 +112,32 @@ export default class TextareaInput {
         input.composing = null
       }
     })
+    // XXX
+    var userAgent = window.navigator.userAgent.toLowerCase()
+    if (userAgent.indexOf('iphone') != -1 || userAgent.indexOf('ipad') != -1 || userAgent.indexOf('android') != -1) {
+      on(te, "compositionstart", e => {
+        if(cm.keyPressTimer) {
+          clearTimeout(cm.keyPressTimer)
+        }
+      }, false)
+      on(window, "keydown", e => {
+        if(e.target == te && cm.display.input.composing) {
+          e.stopPropagation()
+        }
+      }, true)
+      on(te, "blur", e => {
+        if(e.relatedTarget) {
+          return
+        }
+        e.stopPropagation()
+        if (cm.display.input.composing) {
+          te.focus()
+          setTimeout(function(){
+            te.blur()
+          }, 1)
+        }
+      }, false)
+    }
   }
 
   prepareSelection() {
